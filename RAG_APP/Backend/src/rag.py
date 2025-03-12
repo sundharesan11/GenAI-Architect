@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableParallel
 from operator import itemgetter
 from decouple import config
 
-from qdrant import vector_store
+from src.qdrant import vector_store
 
 
 model = ChatOpenAI(
@@ -62,17 +62,12 @@ def create_chain():
 def get_answer_and_docs(question: str):
     chain = create_chain()
     
-    
     response = chain.invoke(question)
     
     answer = response["response"].content
     context = response["context"]
 
     return {
-        "Answer": answer,
-        "Context": context
+        "answer": answer,
+        "context": context
     }
-
-
-response = get_answer_and_docs("Who is the author of the article?")
-print(response)

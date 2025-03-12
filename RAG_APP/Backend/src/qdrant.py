@@ -47,14 +47,14 @@ vector_store = Qdrant(
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20, length_function=len)
 
-def upload_website_to_collection(collection_name: str, url: str):
+def upload_website_to_collection(url: str):
     loader = WebBaseLoader(url)
     docs = loader.load_and_split(text_splitter)
     for doc in docs:
         doc.metadata["source"] = url
     vector_store.add_documents(docs)
-    print(f"Documents uploaded to collection {collection_name} successfully")
+    return (f"Documents uploaded to collection {collection_name} successfully")
 
 
-create_collection(collection_name=collection_name)
-upload_website_to_collection(collection_name=collection_name, url = "https://mark-riedl.medium.com/a-very-gentle-introduction-to-large-language-models-without-the-hype-5f67941fa59e")
+# create_collection(collection_name=collection_name)
+# upload_website_to_collection(collection_name=collection_name, url = "https://mark-riedl.medium.com/a-very-gentle-introduction-to-large-language-models-without-the-hype-5f67941fa59e")
