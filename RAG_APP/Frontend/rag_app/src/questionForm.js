@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './App.css'; // Import the CSS file
+import './App.css'; 
+
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/'
+  baseURL: 'http://localhost:8000',
+  withCredentials: false,
 });
 
 const QuestionForm = () => {

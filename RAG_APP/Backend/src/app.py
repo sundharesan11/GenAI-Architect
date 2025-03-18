@@ -11,15 +11,14 @@ app = FastAPI(
     version="0.1.0"
 )
 
-origins = [
-    "http://localhost:3000"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = origins,
-    allow_methods = ["*"]
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
 
 class Message(BaseModel):
     message: str
@@ -34,8 +33,8 @@ def chat(message: Message):
     response = get_answer_and_docs(message.message)
     response_content = {
         "Question": message.message,
-        "Answer": response["answer"],
-        "Documents": response["context"]
+        "Answer": response["Answer"],
+        "Documents": response["Documents"]
     }
     return JSONResponse(content=response_content, status_code=200)
 

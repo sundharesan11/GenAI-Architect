@@ -32,27 +32,38 @@ prompt = ChatPromptTemplate.from_template(prompt_template)
 retriever = vector_store.as_retriever()
 
 
-def extract_text(docs):
+def format_docs_as_string(docs):
+    """Convert list of documents to a single string for the prompt."""
     return "\n\n".join([doc.page_content for doc in docs])
 
-def get_context(query):
+
+def get_context_and_raw_docs(query):
+    """Retrieve docs and return both the formatted context string and raw docs."""
     docs = retriever.invoke(query)
-    return extract_text(docs)
+    context_string = format_docs_as_string(docs)
+    docs_array = [doc.page_content for doc in docs]
+    return {"context_string": context_string, "docs_array": docs_array}
 
 
 def create_chain():
-
     chain = (
         RunnableParallel(
             {
-                "context": lambda x: get_context(x),
+                "context_data": lambda x: get_context_and_raw_docs(x),
                 "question": RunnablePassthrough()
             }
         )
         | RunnableParallel(
             {
-                "response": prompt | model,
-                "context": itemgetter("context")
+                "response": (
+                    {
+                        "context": lambda x: x["context_data"]["context_string"], 
+                        "question": itemgetter("question")
+                    } 
+                    | prompt 
+                    | model
+                ),
+                "docs": lambda x: x["context_data"]["docs_array"], 
             }
         )
     )
@@ -65,9 +76,9 @@ def get_answer_and_docs(question: str):
     response = chain.invoke(question)
     
     answer = response["response"].content
-    context = response["context"]
+    docs = response["docs"]
 
     return {
-        "answer": answer,
-        "context": context
+        "Answer": answer,
+        "Documents": docs 
     }
