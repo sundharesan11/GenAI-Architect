@@ -5,7 +5,6 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_core.runnables import RunnableParallel
 from operator import itemgetter
 from decouple import config
-
 from src.qdrant import vector_store
 
 
@@ -16,7 +15,7 @@ model = ChatOpenAI(
 )
 
 prompt_template = """
-Answer the question based on the context provided, in a concise manner and using bullet points if needed.
+Answer the question based on the context provided, in a concise manner, in markdown and using bullet points if needed.
 
 Context:
 {context}
