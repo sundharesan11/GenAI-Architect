@@ -1,15 +1,20 @@
-import logo from './logo.svg';
 import './App.css';
+import UploadForm from './uploadData';
 import QuestionForm from './questionForm';
 
 function App() {
   return (
     <div className="App">
+      
       <header className="App-header">
+      <div className="header-logo">RAG Application</div>
       </header>
-      <p>
+      <div>
+          <UploadForm />
+      </div>
+      <div>
           <QuestionForm />
-      </p>
+      </div>
     </div>
   );
 }

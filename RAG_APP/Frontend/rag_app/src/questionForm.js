@@ -29,21 +29,18 @@ const QuestionForm = () => {
       if (response.data && response.data.Answer) {
         setAnswer(response.data.Answer);
         
-        // Handle different possible document formats
         let docData = response.data.Documents || response.data.Document || '';
         
-        // Convert string to array if it's not already an array
         let docsArray = [];
         if (Array.isArray(docData)) {
           docsArray = docData;
         } else if (typeof docData === 'string' && docData.trim() !== '') {
-          // Assume the string might contain multiple documents separated somehow
-          // This is a simple approach - you might need to adjust based on your actual format
+
           docsArray = [docData];
         }
         
         setDocuments(docsArray);
-        setExpandedDocs({}); // Reset expanded state
+        setExpandedDocs({}); 
       } else {
         console.error("Unexpected response format:", response.data);
         setError("Received response but couldn't find an answer in the expected format.");
