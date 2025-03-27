@@ -1,0 +1,16 @@
+.env
+.env.*
+*.env
+
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
