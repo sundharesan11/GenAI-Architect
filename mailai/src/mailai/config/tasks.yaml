@@ -1,17 +1,195 @@
-research_task:
+categorization_task:
   description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
-  expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+    First, read the fetched emails from the file at 'output/fetched_emails.json' using the `FileReadTool`.
+    
+    For each email, analyze the content and categorize as follows:
 
-reporting_task:
-  description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
+    1. Category (choose one):
+       - NEWSLETTERS
+       - PROMOTIONS
+       - PERSONAL
+       - GITHUB
+       - MEDIUM
+       - RECEIPTS_INVOICES
+       - OTHER
+
+    2. Priority (choose one):
+      IMPORTANT - BE VERY STRICT WITH PRIORITY LEVELS:
+      - HIGH: ONLY for urgent matters requiring immediate attention or response
+      - MEDIUM: ONLY for important but not urgent communications from real people
+         - DO NOT mark promotional content, newsletters, or automated notifications as MEDIUM
+         - DO NOT mark Shutterfly or other promotional emails as MEDIUM - they should be LOW
+         - Only actual communication from real people can be MEDIUM
+      - LOW
+
+    3. Required Action (choose one):
+       - REPLY
+       - READ_ONLY
+       - TASK
+       - IGNORE
+
+    IMPORTANT MEDIUM EMAIL RULES:
+    - ANY email from medium.com domains MUST be categorized as MEDIUM
+    - ANY email containing "MEDIUM" in the subject or sender MUST be categorized as MEDIUM
+    
+    IMPORTANT FORMAT INSTRUCTIONS:
+    Your final answer must be a valid JSON object with these exact fields(example without the quotes):
+      "email_id": "The email's unique identifier",
+      "subject": "The email's subject line",
+      "sender": "The email sender",
+      "category": "The category you assigned",
+      "priority": "The priority you assigned",
+      "required_action": "The action needed",
+      "date": "The email date in YYYY-MM-DD format",
+      "age_days": "The age of the email in days"
+    
+    Do not include any explanations, thoughts, or additional text outside the JSON object.
+    Do not use markdown formatting or code blocks.
+    Just return the raw JSON object.
   expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+    A JSON object with email_id, subject, category, priority, and required_action fields.
+  agent: categorizer
+  output_file: output/categorization_report.json
+
+organization_task:
+  description: >
+    First, read the categorization report from 'output/categorization_report.json' using the `FileReadTool`.
+    
+    For each email, organize it using Gmail's priority features with the 'organize_email' tool.
+
+    Use the email content, email domain, and categorization report to determine the correct labels.
+    
+    Simplified Label Rules:
+    
+    1. For MEDIUM emails:
+       - Add "MEDIUM" label
+       - Star the email
+       - If HIGH priority, also add "URGENT" label
+    
+    2. For NEWSLETTERS emails:
+       - Add "NEWSLETTERS" label
+       - No newsletter is HIGH or MEDIUM priority
+       - No newsletter requires action
+    
+    3. For other emails:
+       - Add a label matching the category (e.g., "PERSONAL", "GITHUB")
+       - If HIGH priority, add "URGENT" label and star the email
+       - If MEDIUM priority, add "ACTION_NEEDED" label
+    
+    Your final answer should be a JSON object with:
+    - email_id: The email's ID
+    - subject: The email's subject
+    - applied_labels: List of labels applied
+    - starred: Whether the email was starred (true/false)
+    - result: "Success" or error message
+  expected_output: >
+    A detailed report of how each email was organized, including:
+    - The email ID and subject
+    - The labels that were applied
+    - Whether the email was starred
+    - The result of the organization attempt
+
+    The report should include special handling for MEDIUM and NEWSLETTERS emails to ensure they receive
+    the appropriate labels and priority indicators.
+  agent: organizer
+  context: [categorization_task]
+  output_file: output/organization_report.json
+
+response_task:
+  description: >
+    Based on the categorization report, generate responses ONLY for emails that require action.
+    
+    Only generate responses for:
+    - PERSONAL emails with HIGH or MEDIUM priority
+    - DO NOT generate responses for ANY MEDIUM emails - the user will respond directly on MEDIUM instead
+    
+    
+    For MEDIUM comments:
+    - Thank them for their comment
+    - Answer their question if possible
+    - End with "Best regards, Sundharesan Kumaresan"
+    
+    IMPORTANT: For the recipient field, extract the username from the comment.
+    For example, if the comment is from "@username commented on your video",
+    use "username@gmail.com" as the recipient.
+    
+    Use the 'save_email_draft' tool with:
+    - subject: Add "Re: " to the original subject
+    - body: Your response
+    - recipient: The extracted username + "@gmail.com" or use "user@example.com" if you can't extract it
+    
+    Your final answer should be a simple list of emails you responded to.
+  expected_output: >
+    A draft email saved to the drafts folder for each email that requires a response, or 
+    "No response needed" for emails to be deleted or ignored. Each draft should follow the 
+    specified structure and formatting guidelines. The should be in correct Markdown format without
+    any additional text or formatting such as "```" or "```md".
+  agent: response_generator
+  context: [categorization_task, organization_task]
+  output_file: output/response_report.json
+
+
+cleanup_task:
+  description: >
+    Based on the categorization report, identify LOW priority emails that are safe to delete.
+    
+    EMAILS TO ARCHIVE INSTEAD OF DELETE:
+    - Receipts and Invoices (archive for tax purposes)
+    - Confirmation emails for purchases
+    - Travel-related emails with booking information
+    - Anything that might be needed for reference later
+    
+    For these emails, use the 'GmailArchiveTool' instead of deleting them.
+    
+    NEVER delete:
+    - ANY email marked as HIGH or MEDIUM priority
+    - ANY email from a personal contact
+    - ANY email related to MEDIUM
+    - ANY email less than 5 days old
+    
+    ALWAYS delete:
+    - ANY email with "quora" in the sender or subject, regardless of categorization
+    - ANY email categorized as PROMOTIONS and older than 2 days
+    - ANY email categorized as NEWSLETTERS and older than 7 days, unless HIGH priority
+    
+    The emails already have their age calculated in the "age_days" field.
+    An email is less than 5 days old if age_days < 5.
+    
+    For each email:
+    1. Check if it meets the deletion criteria (LOW priority AND not from criteria above)
+    2. For emails you decide to delete, document:
+       - The email subject and sender
+       - The reason for deletion
+       - Use the 'GmailDeleteTool' with the email_id and reason
+
+    AFTER processing all emails for deletion:
+    3. IMPORTANT: Use the 'empty_gmail_trash' tool to permanently empty the trash folder
+       and free up storage space in the Gmail account.
+
+    WORKFLOW:
+    1. First, analyze each email one at a time
+    2. For emails that should be deleted, use delete_email tool with ONLY the required fields
+    3. After processing all emails, use empty_gmail_trash tool
+    4. Then compile your final report
+
+    Your final answer should provide a detailed report containing:
+    - DELETED EMAILS: For each deleted email, include email_id, subject, sender, category, priority, age, and reason for deletion
+    - PRESERVED EMAILS: For each preserved email, include email_id, subject, sender, category, priority, age, and reason for preservation
+    - TRASH STATUS: Information about whether the trash was emptied successfully and how many messages were permanently removed
+    Also include information about whether the trash was emptied successfully.
+
+    IMPORTANT: When using the 'delete_email' tool, ONLY provide the email_id and reason 
+    as a simple JSON object. For example:
+    
+      "email_id": "123", 
+      "reason": "Low priority promotional email"
+    
+  expected_output: >
+    A comprehensive deletion report with three sections:
+    1. DELETED EMAILS: Full details of each deleted email including subject, sender, id, category, priority, age and deletion reason
+    2. PRESERVED EMAILS: Full details of each preserved email including the reason for preservation
+    3. TRASH STATUS: Results of the trash emptying operation including number of messages permanently removed
+    The report should be in JSON format for easy parsing and tracking.
+  agent: cleaner
+  context: [categorization_task, organization_task]
+  output_file: output/cleanup_report.json
