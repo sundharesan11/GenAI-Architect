@@ -18,7 +18,7 @@ class searchResult(BaseModel):
     def to_string(self) -> str:
         return f"Title: {self.title}\nLink: {self.link}\nSnippet: {self.snippet}"
     
-class funcitonCalling(BaseModel):
+class functionCalling(BaseModel):
     function_name: str = Field(..., description="The name of the function to call.")
     parameters: Dict[str, Any] = Field(..., description="The parameters to pass to the function.")
 

@@ -6,10 +6,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
-
-
-
-
+from processing import parse_function_call, google_search, process_message
 
 
 # Create Gradio Interface
