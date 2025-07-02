@@ -1,0 +1,13 @@
+[project]
+name = "mcpclientserver"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.56.0",
+    "beautifulsoup4>=4.13.4",
+    "fastapi>=0.115.14",
+    "mcp>=1.10.1",
+    "python-dotenv>=1.1.1",
+]
